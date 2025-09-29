@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Molekul 3D (JSmol) — sudut, panjang, dan polyhedra</title>
+  <script type="text/javascript" src="https://chemapps.stolaf.edu/jmol/jsmol/JSmol.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f5f7;
+      color: #222;
+      padding: 20px;
+    }
+    h2 { color: #1560BD; }
+    #appdiv {
+      width: 100%;
+      max-width: 980px;
+      height: 600px;
+      margin: 20px auto;
+      border-radius: 8px;
+      background: #000;
+    }
+    .controls { max-width:980px; margin:0 auto 8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+    select, button {
+      margin: 0;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #aaa;
+      cursor: pointer;
+      background:white;
+    }
+    button:hover { background:#1560BD; color:#fff; }
+    p.hint { max-width:980px; margin:10px auto; font-size:14px; }
+  </style>
+</head>
+<body>
+  <h2>Molekul 3D (JSmol) — sudut, panjang, dan polyhedra</h2>
+
+  <div class="controls">
+    <label for="molecule">Pilih bentuk:</label>
+    <select id="molecule">
+      <option value="$CO2">Linear (CO₂)</option>
+      <option value="$BF3">Segitiga Planar (BF₃)</option>
+      <option value="$CH4">Tetrahedral (CH₄)</option>
+      <option value="$NH3">Trigonal Piramida (NH₃)</option>
+      <option value="$H2O">Bentuk V (H₂O)</option>
+      <option value="$SF6">Oktahedral (SF₆)</option>
+    </select>
+
+    <button id="loadMol">Muat</button>
+    <button id="showMeasure">Tampilkan Pengukuran</button>
+    <button id="togglePoly">Toggle Polyhedra</button>
+    <button id="resetView">Reset View</button>
+  </div>
+
+  <div id="appdiv"></div>
+
+  <p class="hint"><b>Petunjuk:</b> Pilih bentuk lalu klik <b>Muat</b>. Klik <b>Tampilkan Pengukuran</b> untuk menampilkan ukuran pada model.</p>
+
+  <script>
+    // Config JSmol memakai CDN
+    var Info = {
+      width: "100%",
+      height: "100%",
+      use: "HTML5",
+      j2sPath: "https://chemapps.stolaf.edu/jmol/jsmol/j2s",
+      script: 'load "$CO2"; background white; spacefill 23%; wireframe 0.15;'
+    };
+
+    Jmol.getApplet("jsmolApplet0", Info);
+    document.getElementById("appdiv").innerHTML = Jmol.getAppletHtml("jsmolApplet0");
+
+    // Tombol
+    document.getElementById("loadMol").addEventListener("click", () => {
+      var mol = document.getElementById("molecule").value;
+      Jmol.script(jsmolApplet0, 'load "' + mol + '"; spacefill 23%; wireframe 0.15; center; zoom to 100;');
+    });
+
+    document.getElementById("showMeasure").addEventListener("click", () => {
+      // buat pengukuran otomatis: pairwise distances & angles for bonded atoms
+      Jmol.script(jsmolApplet0, `
+        set measurementLabels ON;
+        for (i=1;i<=atomCount;i=i+1)
+          for (j=i+1;j<=atomCount;j=j+1)
+            if (distance(i,j) < 2.5) measure "%a" i j;
+        for (i=1;i<=atomCount;i=i+1)
+          for (j=1;j<=atomCount;j=j+1)
+            for (k=1;k<=atomCount;k=k+1)
+              if (j!=i && k!=i && j!=k)
+                if (distance(i,j) < 2.5 && distance(i,k) < 2.5) measure angle i j k;
+      `);
+    });
+
+    var polyOn = false;
+    document.getElementById("togglePoly").addEventListener("click", () => {
+      if (!polyOn) { Jmol.script(jsmolApplet0, 'polyhedra on'); polyOn = true; }
+      else { Jmol.script(jsmolApplet0, 'polyhedra off'); polyOn = false; }
+    });
+
+    document.getElementById("resetView").addEventListener("click", () => {
+      Jmol.script(jsmolApplet0, 'reset; center; zoom to 100; spin off;');
+    });
+  </script>
+</body>
+</html>
