@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>JSmol Embed — Molekul 3D dengan Sudut, Panjang, Polyhedra</title>
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:16px; background:#f7f9fc; color:#111 }
+    .container { max-width:1100px; margin:0 auto; }
+    h1 { color:#0b63b8; font-size:1.6rem; margin-bottom:8px }
+    .controls { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap }
+    .controls select, .controls button { padding:8px 10px; border-radius:8px; border:1px solid #d0d7df; background:white }
+    #appletdiv { width:100%; height:560px; border-radius:8px; background:#222 }
+    .info { margin-top:10px; font-size:0.95rem }
+    .measurements { margin-top:8px; padding:10px; background:white; border-radius:8px; border:1px solid #e6eef9 }
+    .footer { margin-top:18px; font-size:0.85rem; color:#555 }
+    @media (max-width:720px){ #appletdiv { height:420px } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Molekul 3D (JSmol) — sudut, panjang, dan polyhedra</h1>
+    <div class="controls">
+      <label for="geom">Pilih bentuk:</label>
+      <select id="geom">
+        <option value="linear">Linear (CO2)</option>
+        <option value="trigonal_planar">Trigonal planar (BF3)</option>
+        <option value="tetrahedral">Tetrahedral (CH4)</option>
+        <option value="trigonal_pyramidal">Trigonal pyramidal (NH3)</option>
+        <option value="bent">Bentuk bengkok / V (H2O)</option>
+        <option value="octahedral">Octahedral (SF6)</option>
+      </select>
+
+      <button id="loadBtn">Muat</button>
+      <button id="showMeasures">Tampilkan Pengukuran</button>
+      <button id="togglePoly">Toggle Polyhedra</button>
+      <button id="resetView">Reset View</button>
+    </div>
+
+    <!-- JSmol applet container -->
+    <div id="appletdiv"></div>
+
+    <div class="info">Petunjuk singkat: pilih bentuk lalu klik <strong>Muat</strong>. Untuk melihat panjang dan sudut klik <strong>Tampilkan Pengukuran</strong>. Polyhedra akan digambar jika cocok untuk bentuknya.</div>
+
+    <div class="measurements" id="measurementsPanel">Tidak ada pengukuran.</div>
+
+    <div class="footer">Cara pakai: simpan file ini sebagai <code>jsmol_embed.html</code> dan buka di server web (atau file lokal jika browser Anda mengizinkan script eksternal). JSmol memerlukan koneksi ke file JSmol JavaScript; file ini memuat JSmol dari CDN publik St. Olaf.</div>
+  </div>
+
+  <!-- Load JSmol (hosted by St. Olaf ChemApps) -->
+  <script src="https://chemapps.stolaf.edu/jmol/jsmol/JSmol.min.js"></script>
+  <script>
+    // ---------- APPLET CONFIG ----------
+    const Info = {
+      width: '100%',
+      height: '100%',
+      use: 'HTML5',
+      debug: false,
+      color: '#ffffff',
+      addSelectionOptions: false,
+      script: '',
+      j2sPath: 'https://chemapps.stolaf.edu/jmol/jsmol/j2s',
+      jarPath: 'https://chemapps.stolaf.edu/jmol/jsmol',
+      jarFile: 'JmolAppletSigned.jar',
+      readyFunction: appletReady
+    };
+
+    // create the applet
+    const applet = Jmol.getApplet('jsmolApplet', Info);
+    document.getElementById('appletdiv').innerHTML = Jmol.getAppletHtml(applet);
+
+    // ---------- MOLECULE DATA (inline XYZ strings) ----------
+    const MOL = {
+      linear: `3\nCO2 linear (Å)\nC 0.000 0.000 0.000\nO 0.000 0.000 1.160\nO 0.000 0.000 -1.160`,
+      trigonal_planar: `4\nBF3 trigonal planar\nB 0.000 0.000 0.000\nF 1.305 0.000 0.000\nF -0.652 1.131 0.000\nF -0.652 -1.131 0.000`,
+      tetrahedral: `5\nCH4 tetrahedral\nC 0.000 0.000 0.000\nH 0.629 0.629 0.629\nH -0.629 -0.629 0.629\nH -0.629 0.629 -0.629\nH 0.629 -0.629 -0.629`,
+      trigonal_pyramidal: `5\nNH3 trigonal pyramidal\nN 0.000 0.000 0.100\nH 0.000 0.942 -0.333\nH -0.816 -0.471 -0.333\nH 0.816 -0.471 -0.333`,
+      bent: `3\nH2O bent\nO 0.000 0.000 0.000\nH 0.758 0.000 0.504\nH -0.758 0.000 0.504`,
+      octahedral: `7\nSF6 octahedral\nS 0.000 0.000 0.000\nF 1.560 0.000 0.000\nF -1.560 0.000 0.000\nF 0.000 1.560 0.000\nF 0.000 -1.560 0.000\nF 0.000 0.000 1.560\nF 0.000 0.000 -1.560`
+    };
+
+    // ---------- HELPERS ----------
+    function appletReady() {
+      // initial load
+      Jmol.script(applet, 'background white; wireframe off; spacefill 23%;');
+    }
+
+    function loadGeometry(key) {
+      const xyz = MOL[key];
+      // load inline XYZ and center
+      Jmol.script(applet, `load inline """\n${xyz}\n""";`);
+      Jmol.script(applet, 'spacefill 23%; wireframe 0.15; select element=H; spacefill 40%; select none;');
+      Jmol.script(applet, 'spin off; center; zoom to 100;');
+      // clear measurement panel
+      document.getElementById('measurementsPanel').textContent = 'Molekul dimuat — klik "Tampilkan Pengukuran" untuk menghitung panjang & sudut.';
+    }
+
+    function showMeasurements() {
+      // show bond lengths and angles automatically by enumerating bonds and angles
+      // We'll run a script that turns on measurement labels and requests measurement listing
+      Jmol.script(applet, 'set measurementLabels ON; set showMeasurements ON;');
+      // ask JSmol to list measurements and capture it as a string
+      // The simplest way: use 'show measurements' which prints to the console; Jmol.getPropertyAsArray is not always available,
+      // but we can request specific measurements for common small molecules.
+
+      // Build measurement queries depending on current atom count / selection
+      Jmol.script(applet, 'calculate bondList;');
+
+      // For a robust (but simple) approach: compute pairwise bond lengths for atoms within 2.5 Å
+      const script = `
+        define measurePairs @NONE;
+        for (i=1;i<=atomCount; i=i+1) {
+          for (j=i+1;j<=atomCount;j=j+1) {
+            if (distance(i,j) < 2.5) {
+              measure "%a" i j; // create a measurement label for the bond
+            }
+          }
+        }
+        // create angle measures for atom triplets where central atom bonded to both
+        for (i=1;i<=atomCount;i=i+1) {
+          for (j=1;j<=atomCount;j=j+1) {
+            for (k=1;k<=atomCount;k=k+1) {
+              if (j!=i && k!=i && j!=k) {
+                if (distance(i,j) < 2.5 && distance(i,k) < 2.5) {
+                  measure angle i j k;
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      // run the script and also update the panel with a human-readable summary using Jmol's 'getProperty' function
+      Jmol.script(applet, script);
+
+      // After a short delay (applet execution), query measurements and print to panel. We use Jmol.getPropertyAsArray if available.
+      setTimeout(() => {
+        try {
+          const measures = Jmol.getPropertyAsString(applet, 'measurements');
+          if (measures && measures.length>0) {
+            document.getElementById('measurementsPanel').textContent = measures;
+          } else {
+            document.getElementById('measurementsPanel').textContent = 'Tidak dapat mengambil daftar pengukuran secara otomatis pada browser ini — tetapi pengukuran ditampilkan pada model (label). Jika Anda butuh daftar terformat, saya akan tambahkan fitur eksport.';
+          }
+        } catch (e) {
+          document.getElementById('measurementsPanel').textContent = 'Pengukuran dibuat dan diberi label pada model. (Browser mungkin membatasi pengambilan daftar secara otomatis.)';
+        }
+      }, 350);
+    }
+
+    let polyOn = false;
+    function togglePolyhedra() {
+      if (!polyOn) {
+        // try to create polyhedra around central atoms (works for tetrahedral, octahedral)
+        Jmol.script(applet, 'polyhedra 1.5;');
+        polyOn = true;
+      } else {
+        Jmol.script(applet, 'polyhedra off;');
+        polyOn = false;
+      }
+    }
+
+    function resetView() {
+      Jmol.script(applet, 'zoom to 100; spin off; center;');
+    }
+
+    // ---------- UI wiring ----------
+    document.getElementById('loadBtn').addEventListener('click', () => {
+      const val = document.getElementById('geom').value;
+      loadGeometry(val);
+    });
+
+    document.getElementById('showMeasures').addEventListener('click', () => {
+      showMeasurements();
+    });
+
+    document.getElementById('togglePoly').addEventListener('click', () => {
+      togglePolyhedra();
+    });
+
+    document.getElementById('resetView').addEventListener('click', () => {
+      resetView();
+    });
+
+  </script>
+</body>
+</html>
